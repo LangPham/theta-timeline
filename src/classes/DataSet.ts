@@ -5,13 +5,13 @@ export class DataSet {
   content: string;
   start: Date;
   end: Date;
-  status: string;
-  constructor(id: string, group: string, content: string, start: Date, end: Date, status: string) {
+  editable: boolean;
+  constructor(id: string, group: string, content: string, start: Date, end: Date, editable: boolean) {
     this.id = id;
     this.group = group;
     this.content = content;
     this.start = start;
     this.end = end;
-    this.status = status;
+    this.editable = editable;
   }
 }

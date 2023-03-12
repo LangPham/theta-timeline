@@ -6,6 +6,9 @@ import Swal from "sweetalert2";
 import { Point } from "./Point";
 import { v4 as uuid } from "uuid";
 
+var styleEdit: string = "color:white;background-color:#1d4ed8;border-radius:5px;";
+var styleReadOnly: string = "color:white; background-color:gray;border-radius:5px;"
+
 export class TimeLine {
   margin: Margin;
   data: DataSet[];
@@ -133,7 +136,7 @@ export class TimeLine {
       content: "newTeam",
       start: start,
       end: moment(start).add(60, "minutes").toDate(),
-      status: "draft",
+      editable: true,
     };
 
     let groug_rect = d3.select(event.target).select(".rect");
@@ -157,12 +160,12 @@ export class TimeLine {
       .attr("style", () => {
         let style =
           "display:flex;align-items:center;justify-content:center;height:inherit;flex-direction:column;";
-        switch (data.status) {
-          case "accepted": {
-            return style + "color:white; background-color:gray;";
+        switch (data.editable) {
+          case true: {
+            return style + styleReadOnly;
           }
           default:
-            return style + "color:white;background-color:ForestGreen;";
+            return style + styleEdit;
         }
       })
       .html(() => {
@@ -190,8 +193,7 @@ export class TimeLine {
       .attr("data-id", () => {
         return data.id;
       })
-      .attr("fill", "#044B94")
-      .attr("fill-opacity", "0.1")
+      .attr("rx", "5")
       .attr("stroke", "black")
       .on("click", this.onClickItem);
 
@@ -215,7 +217,7 @@ export class TimeLine {
   };
 
   draw = () => {
-    console.log("draw", this)
+    console.log("draw", this);
     let item = this.svg
       .append("g")
       .attr("class", "rect")
@@ -243,12 +245,12 @@ export class TimeLine {
       .attr("style", (data: DataSet, index: number) => {
         let style =
           "display:flex;align-items:center;justify-content:center;height:inherit;flex-direction:column;";
-        switch (data.status) {
-          case "accepted": {
-            return style + "color:white; background-color:gray;";
+        switch (data.editable) {
+          case false: {
+            return style + styleReadOnly;
           }
           default:
-            return style + "color:white;background-color:ForestGreen;";
+            return style + styleEdit;
         }
       })
       .html((data: DataSet, index: number) => {
@@ -277,6 +279,7 @@ export class TimeLine {
         return data.id;
       })
       .attr("fill", "#044B94")
+      .attr("rx", "5")
       .attr("fill-opacity", "0.1")
       .attr("stroke", "black")
       .on("click", this.onClickItem);
@@ -289,7 +292,7 @@ export class TimeLine {
   };
 
   onClickItem = (event: any, data: any) => {
-    if (data.status == "accepted") {
+    if (data.editable === false) {
       event.preventDefault();
       event.stopPropagation();
       event.stopImmediatePropagation();
@@ -297,7 +300,7 @@ export class TimeLine {
     }
 
     Swal.fire({
-      title: "Action",      
+      title: "Action",
       input: "radio",
       inputOptions: {
         edit: "Edit",
@@ -396,7 +399,7 @@ export class TimeLine {
   };
 
   dragstart = (event: any, data: any) => {
-    if (data.status == "accepted") {
+    if (data.editable === false) {
       return null;
     }
     let node = event.sourceEvent.srcElement;
@@ -408,8 +411,7 @@ export class TimeLine {
   };
 
   dragging = (event: any, data: any) => {
-    if (data.status == "accepted") {
-      // event.preventDefault()
+    if (data.editable === false) {
       return null;
     }
     var transform = d3.zoomTransform(event.sourceEvent.srcElement);
@@ -439,7 +441,7 @@ export class TimeLine {
   };
 
   dragend = (event: any, data: any) => {
-    if (data.status == "accepted") {
+    if (data.editable === false) {
       return null;
     }
     let node = d3.select(this.drapTarget.node.parentNode);
@@ -455,4 +457,3 @@ export class TimeLine {
     }
   };
 }
-

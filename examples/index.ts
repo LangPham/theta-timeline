@@ -1,16 +1,7 @@
 import {TimeLine, DataSet} from "../src"
 import moment from "moment";
-import { LoremIpsum } from "lorem-ipsum";
-const lorem = new LoremIpsum({
-  sentencesPerParagraph: {
-    max: 8,
-    min: 4,
-  },
-  wordsPerSentence: {
-    max: 16,
-    min: 8,
-  },
-});
+import { faker } from '@faker-js/faker';
+
 let datas: DataSet[] = [];
 //   {
 //     id: 1,
@@ -18,13 +9,19 @@ let datas: DataSet[] = [];
 //     content: "Dragon",
 //     start: new Date(2023, 2, 9, 19, 0, 0),
 //     end: new Date(2023, 2, 9, 20, 0, 0),
-//     status: "draft"
+//     editable: true
 //   },
 
+function createRandomGroup(): string {
+  return faker.company.name();
+}
 
 let count = 10;
-let groups_arr = ["one", "two", "three", "four", "five"];
-let status_arr = ["accepted", "draft"];
+let groups_arr: string[] = [];
+
+for (let i = 0; i++, i <= 5; ) {
+  groups_arr.push(faker.name.firstName())
+}
 
 let dru_arr = [60, 90, 120];
 for (let i = 0; i++, i <= count; ) {
@@ -41,10 +38,10 @@ for (let i = 0; i++, i <= count; ) {
   let data = {
     id: i.toString(),
     group: groups_arr[Math.floor(Math.random() * groups_arr.length)],
-    content: lorem.generateWords(1),
+    content: faker.company.name() ,
     start: start.toDate(),
     end: end.toDate(),
-    status: status_arr[Math.floor(Math.random() * status_arr.length)],
+    editable: faker.datatype.boolean(),
   };
   datas.push(data);
 }
@@ -52,7 +49,7 @@ for (let i = 0; i++, i <= count; ) {
 let tl = new TimeLine("mychart", datas, groups_arr, {
   width: 1000,
   height: 500,
-  margin: { top: 20, bottom: 20, left: 50},
+  margin: { top: 20, bottom: 20, left: 60},
 });
 tl.draw();
-// console.log(tl);
+
