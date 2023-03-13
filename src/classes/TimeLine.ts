@@ -7,11 +7,11 @@ import { Point } from "./Point";
 import { v4 as uuid } from "uuid";
 
 var styleFOEdit: string =
-  "color:white;background-color:#1d4ed8;border-radius:5px;";
+  "display:grid;grid-template-columns:repeat(10,1fr);height:inherit;color:white;background-color:#1d4ed8;border-radius:5px;border-color:#1e3a8a;border-style:solid;box-sizing:border-box;border-width: thin;";
 var styleFOReadOnly: string =
   "color:black;background-color:#d4d4d4;border-radius:5px;";
-var styleREdit: string = "#3b82f6";
-var styleRReadOnly: string = "#374151";
+var styleFOEditing: string =
+  "display:grid;grid-template-columns:repeat(10,1fr);height:inherit;color:white;background-color:#93c5fd;border-radius:5px;border-color:#3b82f6;border-style:solid;box-sizing:border-box;border-width: thin;";
 
 export class TimeLine {
   margin: Margin;
@@ -134,10 +134,10 @@ export class TimeLine {
     start = moment(start).add(-remainder, "minutes").second(0).toDate();
     let group = this.invertYGroup(clickPoint);
     Swal.fire({
-      title: 'Input content',
-      input: 'text',
-      inputLabel: 'Your content',
-      inputPlaceholder: 'Enter content',
+      title: "Input content",
+      input: "text",
+      inputLabel: "Your content",
+      inputPlaceholder: "Enter content",
       inputValidator: (value) => {
         if (!value) {
           return "You need to type something!";
@@ -145,7 +145,6 @@ export class TimeLine {
         return null;
       },
     }).then((result) => {
-      console.log(result)
       if (result.isConfirmed) {
         let data = {
           id: uuid(),
@@ -155,19 +154,16 @@ export class TimeLine {
           end: moment(start).add(60, "minutes").toDate(),
           editable: true,
         };
-    
+
         let groug_rect = d3.select(event.target).select(".rect");
         let item = groug_rect.append("g").attr("type", "rect").data([data]);
         this.drawItem(item, transform);
-    
+
         this.history.set(data.id, { id: data.id, action: "new" });
       } else {
         return null;
       }
-
-      
-    })
-    
+    });
   };
 
   zoomed = (event: any, aaa: any) => {
@@ -187,14 +183,14 @@ export class TimeLine {
   };
 
   drawItem = (item: any, transform?: any) => {
-    // console.log("item", item)
     let xz = this.xTimeScale;
     if (transform !== undefined) {
       xz = transform.rescaleX(this.xTimeScale);
     }
     // Add content for item
-    item
-      .append("foreignObject")
+    let itemFO = item.append("foreignObject");
+
+    itemFO
       .attr("x", (data: DataSet, index: number) => {
         return xz(data.start);
       })
@@ -208,7 +204,7 @@ export class TimeLine {
       .append("xhtml:div")
       .attr("style", (data: DataSet, index: number) => {
         let style =
-          "display:flex;align-items:center;justify-content:center;height:inherit;flex-direction:column;";
+          "display:grid;grid-template-columns:repeat(10,1fr);height:inherit;";
         switch (data.editable) {
           case false: {
             return style + styleFOReadOnly;
@@ -222,42 +218,25 @@ export class TimeLine {
         content = content;
         let start = moment(data.start).format("DD/MM/YYYY HH:mm");
         let end = moment(data.end).format("DD/MM/YYYY HH:mm");
-        return `<span style="white-space:nowrap;">${content}</span><span style="white-space:nowrap;" class="start">${start}</span><span class="end" style="white-space:nowrap;">${end}</span>`;
+        let div_left =
+          "<div style='grid-column:1/2;cursor:col-resize;' class='iLeft'></div>";
+        let div_rigth =
+          "<div style='grid-column:10/11;cursor:col-resize;' class='iRight'></div>";
+        let div_main = `<div class='iMain' style="cursor:grab;grid-column:2/10;display:flex;align-items:center;justify-content:center;height:inherit;width:inherit;flex-direction:column;overflow:hidden;"><span style="white-space:nowrap;">${content}</span><span style="white-space:nowrap;" class="start">${start}</span><span class="end" style="white-space:nowrap;">${end}</span></div>`;
+
+        return div_left + div_main + div_rigth;
       });
 
-    // Add rect
-    // item
-    //   .append("rect")
-    //   .call(this.drap)
-    //   .attr("x", (data: DataSet, index: number) => {
-    //     return xz(data.start);
-    //   })
-    //   .attr("y", (data: DataSet, index: number) => {
-    //     return this.yGroupScale(data.group);
-    //   })
-    //   .attr("width", (data: DataSet, index: number) => {
-    //     return xz(data.end) - xz(data.start);
-    //   })
-    //   .attr("height", this.yGroupScale.bandwidth())
-    //   .attr("data-id", (data: DataSet, index: number) => {
-    //     return data.id;
-    //   })
-    //   .attr("fill", "#044B94")
-    //   .attr("rx", "5")
-    //   .attr("fill-opacity", "0.1")
-    //   .attr("stroke", (data: DataSet, index: number) => {
-    //     if (data.editable){
-    //       return styleREdit
-    //     } else {
-    //       return styleRReadOnly
-    //     }
-        
-    //   })
-    //   .on("click", this.onClickItem);
+    itemFO.on("click", this.onClickItem);
+
+    itemFO.call(this.drap);
   };
 
-  draw = () => {    
-    console.log(this)
+  // .call(this.drap)
+
+  drawHtml = () => {};
+
+  draw = () => {
     let item = this.svg
       .append("g")
       .attr("class", "rect")
@@ -283,70 +262,25 @@ export class TimeLine {
       event.stopPropagation();
       event.stopImmediatePropagation();
       return null;
+    } else if (event.target.offsetParent.tagName === "foreignObject") {
+      event.stopPropagation();
+
+      Swal.fire({
+        title: "Do you want delete?",
+        showCancelButton: true,
+        confirmButtonText: "Yes",
+      }).then((result) => {
+        if (result.isConfirmed) {
+          let node = d3.select(event.target.offsetParent.parentNode);
+          this.removeItem(node, data);
+        } else {
+          let node = d3
+            .select(event.target.offsetParent)
+            .selectChildren()
+            .attr("style", styleFOEdit);
+        }
+      });
     }
-
-    Swal.fire({
-      title: "Action",
-      input: "radio",
-      inputOptions: {
-        edit: "Edit",
-        remove: "Remove",
-      },
-      inputValidator: (value) => {
-        if (!value) {
-          return "You need to choose something!";
-        }
-        return null;
-      },
-      showCancelButton: true,
-    }).then((result) => {
-      switch (result.isConfirmed) {
-        case true: {
-          if (result.value == "edit") {
-            let inputValue = moment(data.end).diff(
-              moment(data.start),
-              "minutes"
-            );
-            Swal.fire({
-              title: "Time long for item?",
-              icon: "question",
-              input: "range",
-              inputLabel: "Minute",
-              inputAttributes: {
-                min: "60",
-                max: "480",
-                step: "15",
-              },
-              inputValue: inputValue,
-            }).then((result) => {
-              if (result.isConfirmed) {
-                data.end = moment(data.start)
-                  .add(parseInt(result.value), "minutes")
-                  .toDate();
-                let transform = d3.zoomTransform(event.target);
-                let xz = transform.rescaleX(this.xTimeScale);
-
-                let node = d3.select(event.target.parentNode);
-                this.updateItem(node, data, xz);
-              }
-            });
-          } else {
-            Swal.fire({
-              title: "Do you want delete?",
-              showCancelButton: true,
-              confirmButtonText: "Yes",
-            }).then((result) => {
-              if (result.isConfirmed) {
-                let node = d3.select(event.target.parentNode);
-                this.removeItem(node, data);
-              }
-            });
-          }
-        }
-        default:
-          null;
-      }
-    });
   };
 
   historyUpdate = (ob: any) => {
@@ -368,7 +302,9 @@ export class TimeLine {
       .attr("width", xz(data.end) - xz(data.start))
       .attr("x", xz(data.start))
       .attr("y", this.yGroupScale(data.group))
-      .attr("stroke", styleREdit);
+      .selectChildren()
+      .attr("style", styleFOEdit);
+
     node
       .select("foreignObject .end")
       .text(moment(data.end).format("DD/MM/YYYY HH:mm"));
@@ -388,42 +324,85 @@ export class TimeLine {
     if (data.editable === false) {
       return null;
     }
-    let node = event.sourceEvent.srcElement;
-    d3.select(node)
-      .raise()
-      .attr("stroke", "red")
-      .attr("style", "cursor: -webkit-grab; cursor: grab;");
-    this.drapTarget = { node: node, event: event, newData: null };
+    let node = event.sourceEvent.target.offsetParent;
+    d3.select(node).selectChildren().raise().attr("style", styleFOEditing);
+    this.drapTarget = {
+      node: node,
+      event: event,
+      newData: null,
+      type: event.sourceEvent.target.className,
+    };
   };
 
   dragging = (event: any, data: any) => {
     if (data.editable === false) {
       return null;
-    }
-    var transform = d3.zoomTransform(event.sourceEvent.srcElement);
-    let xz = transform.rescaleX(this.xTimeScale);
-    let grid =
-      xz(moment(data.start).add(15, "minutes").toDate()) - xz(data.start);
-    let step = Math.round(event.x / grid - this.drapTarget.event.x / grid);
-    d3.select(this.drapTarget.node)
-      .attr("x", () => {
-        let step = Math.round(event.x / grid - this.drapTarget.event.x / grid);
-        let newStart = moment(data.start)
-          .add(15 * step, "minutes")
-          .toDate();
-        let newEnd = moment(data.end)
-          .add(15 * step, "minutes")
-          .toDate();
-        this.drapTarget.newData = { start: newStart, end: newEnd };
-        return xz(newStart);
-      })
-      .attr("y", () => {
-        let clickPoint: Point = { x: event.x, y: event.y };
-        let group = this.invertYGroup(clickPoint);
+    } else {
+      var transform = d3.zoomTransform(event.sourceEvent.srcElement);
+      let xz = transform.rescaleX(this.xTimeScale);
+      let grid =
+        xz(moment(data.start).add(15, "minutes").toDate()) - xz(data.start);
+      let step = Math.round(event.x / grid - this.drapTarget.event.x / grid);
+      switch (this.drapTarget.type) {
+        case "iRight": {
+          d3.select(this.drapTarget.node).attr("width", () => {
+            let newEnd = moment(data.end)
+              .add(15 * step, "minutes")
+              .toDate();
 
-        this.drapTarget.newData.group = group;
-        return this.yGroupScale(group);
-      });
+            let diff = moment(newEnd).diff(moment(data.start), "minutes");
+            if (diff < 60) {
+              return event.preventDefault;
+            }
+            this.drapTarget.newData = {
+              start: data.start,
+              end: newEnd,
+              group: data.group,
+            };
+            return xz(newEnd) - xz(data.start);
+          });
+          return;
+        }
+        case "iLeft": {
+          let newStart = moment(data.start)
+            .add(15 * step, "minutes")
+            .toDate();
+          let diff = moment(data.end).diff(moment(newStart), "minutes");
+          if (diff < 60) {
+            return event.preventDefault;
+          }
+          this.drapTarget.newData = {
+            start: newStart,
+            end: data.end,
+            group: data.group,
+          };
+          d3.select(this.drapTarget.node)
+            .attr("width", xz(data.end) - xz(newStart))
+            .attr("x", xz(newStart));
+          return;
+        }
+        default: {
+          d3.select(this.drapTarget.node)
+            .attr("x", () => {
+              let newStart = moment(data.start)
+                .add(15 * step, "minutes")
+                .toDate();
+              let newEnd = moment(data.end)
+                .add(15 * step, "minutes")
+                .toDate();
+              this.drapTarget.newData = { start: newStart, end: newEnd };
+              return xz(newStart);
+            })
+            .attr("y", () => {
+              let clickPoint: Point = { x: event.x, y: event.y };
+              let group = this.invertYGroup(clickPoint);
+
+              this.drapTarget.newData.group = group;
+              return this.yGroupScale(group);
+            });
+        }
+      }
+    }
   };
 
   dragend = (event: any, data: any) => {
