@@ -30,7 +30,7 @@ for (let i = 0; i++, i <= count; ) {
     "minutes"
   );
   let remainder = 15 - (start.minute() % 15);
-  start = moment(start).add(remainder + i * 120, "minutes");
+  start = moment(start).add(remainder + i * 120, "minutes").seconds(0);
   let end = moment(start).add(
     dru_arr[Math.floor(Math.random() * dru_arr.length)],
     "minutes"
@@ -38,7 +38,7 @@ for (let i = 0; i++, i <= count; ) {
   let data = {
     id: i.toString(),
     group: groups_arr[Math.floor(Math.random() * groups_arr.length)],
-    content: faker.company.name() ,
+    content: faker.address.cityName() ,
     start: start.toDate(),
     end: end.toDate(),
     editable: faker.datatype.boolean(),

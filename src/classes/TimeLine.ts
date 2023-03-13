@@ -6,8 +6,12 @@ import Swal from "sweetalert2";
 import { Point } from "./Point";
 import { v4 as uuid } from "uuid";
 
-var styleEdit: string = "color:white;background-color:#1d4ed8;border-radius:5px;";
-var styleReadOnly: string = "color:white; background-color:gray;border-radius:5px;"
+var styleFOEdit: string =
+  "color:white;background-color:#1d4ed8;border-radius:5px;";
+var styleFOReadOnly: string =
+  "color:black;background-color:#d4d4d4;border-radius:5px;";
+var styleREdit: string = "#3b82f6";
+var styleRReadOnly: string = "#374151";
 
 export class TimeLine {
   margin: Margin;
@@ -62,8 +66,8 @@ export class TimeLine {
     this.xTimeScale = d3
       .scaleTime()
       .domain([
-        Date.now() - 24 * 60 * 60 * 1000 * 5,
-        Date.now() + 24 * 60 * 60 * 1000 * 45,
+        Date.now() - 24 * 60 * 60 * 1000 * 1,
+        Date.now() + 24 * 60 * 60 * 1000 * 49,
       ])
       .nice(2)
       .range([this.margin.left, this.width - this.margin.right]);
@@ -124,80 +128,46 @@ export class TimeLine {
   createItem = (event: any) => {
     let clickPoint: Point = { x: event.x, y: event.y };
     let transform = d3.zoomTransform(event.target);
-    let xz = transform.rescaleX(this.xTimeScale);
     let tfx = transform.invert([clickPoint.x, clickPoint.y]);
     let start = this.xTimeScale.invert(tfx[0]);
     let remainder = moment(start).get("minutes") % 15;
-    start = moment(start).add(-remainder, "minutes").toDate();
+    start = moment(start).add(-remainder, "minutes").second(0).toDate();
     let group = this.invertYGroup(clickPoint);
-    let data = {
-      id: uuid(),
-      group: group,
-      content: "newTeam",
-      start: start,
-      end: moment(start).add(60, "minutes").toDate(),
-      editable: true,
-    };
-
-    let groug_rect = d3.select(event.target).select(".rect");
-    let item = groug_rect.append("g").attr("type", "rect");
-
-    // Add content for item
-    item
-      .data([data])
-      .append("foreignObject")
-      .attr("x", () => {
-        return xz(data.start);
-      })
-      .attr("y", () => {
-        return this.yGroupScale(data.group);
-      })
-      .attr("width", () => {
-        return xz(data.end) - xz(data.start);
-      })
-      .attr("height", this.yGroupScale.bandwidth())
-      .append("xhtml:div")
-      .attr("style", () => {
-        let style =
-          "display:flex;align-items:center;justify-content:center;height:inherit;flex-direction:column;";
-        switch (data.editable) {
-          case true: {
-            return style + styleReadOnly;
-          }
-          default:
-            return style + styleEdit;
+    Swal.fire({
+      title: 'Input content',
+      input: 'text',
+      inputLabel: 'Your content',
+      inputPlaceholder: 'Enter content',
+      inputValidator: (value) => {
+        if (!value) {
+          return "You need to type something!";
         }
-      })
-      .html(() => {
-        let content = data.content;
-        content = content;
-        let start = moment(data.start).format("DD/MM/YYYY HH:mm");
-        let end = moment(data.end).format("DD/MM/YYYY HH:mm");
-        return `<span style="white-space:nowrap;">${content}</span><span style="white-space:nowrap;" class="start">${start}</span><span class="end" style="white-space:nowrap;">${end}</span>`;
-      });
+        return null;
+      },
+    }).then((result) => {
+      console.log(result)
+      if (result.isConfirmed) {
+        let data = {
+          id: uuid(),
+          group: group,
+          content: result.value,
+          start: start,
+          end: moment(start).add(60, "minutes").toDate(),
+          editable: true,
+        };
+    
+        let groug_rect = d3.select(event.target).select(".rect");
+        let item = groug_rect.append("g").attr("type", "rect").data([data]);
+        this.drawItem(item, transform);
+    
+        this.history.set(data.id, { id: data.id, action: "new" });
+      } else {
+        return null;
+      }
 
-    // Add rect
-    item
-      .append("rect")
-      .call(this.drap)
-      .attr("x", () => {
-        return xz(data.start);
-      })
-      .attr("y", () => {
-        return this.yGroupScale(data.group);
-      })
-      .attr("width", () => {
-        return xz(data.end) - xz(data.start);
-      })
-      .attr("height", this.yGroupScale.bandwidth())
-      .attr("data-id", () => {
-        return data.id;
-      })
-      .attr("rx", "5")
-      .attr("stroke", "black")
-      .on("click", this.onClickItem);
-
-    this.history.set(data.id, { id: data.id, action: "new" });
+      
+    })
+    
   };
 
   zoomed = (event: any, aaa: any) => {
@@ -216,29 +186,23 @@ export class TimeLine {
     this.xAxis.call(this.xAxisFunc, xz);
   };
 
-  draw = () => {
-    console.log("draw", this);
-    let item = this.svg
-      .append("g")
-      .attr("class", "rect")
-      .attr("fill", "none")
-      .selectAll("g")
-      .data(this.data)
-      .enter()
-      .append("g")
-      .attr("type", "rect");
-
+  drawItem = (item: any, transform?: any) => {
+    // console.log("item", item)
+    let xz = this.xTimeScale;
+    if (transform !== undefined) {
+      xz = transform.rescaleX(this.xTimeScale);
+    }
     // Add content for item
     item
       .append("foreignObject")
       .attr("x", (data: DataSet, index: number) => {
-        return this.xTimeScale(data.start);
+        return xz(data.start);
       })
       .attr("y", (data: DataSet, index: number) => {
         return this.yGroupScale(data.group);
       })
       .attr("width", (data: DataSet, index: number) => {
-        return this.xTimeScale(data.end) - this.xTimeScale(data.start);
+        return xz(data.end) - xz(data.start);
       })
       .attr("height", this.yGroupScale.bandwidth())
       .append("xhtml:div")
@@ -247,10 +211,10 @@ export class TimeLine {
           "display:flex;align-items:center;justify-content:center;height:inherit;flex-direction:column;";
         switch (data.editable) {
           case false: {
-            return style + styleReadOnly;
+            return style + styleFOReadOnly;
           }
           default:
-            return style + styleEdit;
+            return style + styleFOEdit;
         }
       })
       .html((data: DataSet, index: number) => {
@@ -262,27 +226,49 @@ export class TimeLine {
       });
 
     // Add rect
-    item
-      .append("rect")
-      .call(this.drap)
-      .attr("x", (data: DataSet, index: number) => {
-        return this.xTimeScale(data.start);
-      })
-      .attr("y", (data: DataSet, index: number) => {
-        return this.yGroupScale(data.group);
-      })
-      .attr("width", (data: DataSet, index: number) => {
-        return this.xTimeScale(data.end) - this.xTimeScale(data.start);
-      })
-      .attr("height", this.yGroupScale.bandwidth())
-      .attr("data-id", (data: DataSet, index: number) => {
-        return data.id;
-      })
-      .attr("fill", "#044B94")
-      .attr("rx", "5")
-      .attr("fill-opacity", "0.1")
-      .attr("stroke", "black")
-      .on("click", this.onClickItem);
+    // item
+    //   .append("rect")
+    //   .call(this.drap)
+    //   .attr("x", (data: DataSet, index: number) => {
+    //     return xz(data.start);
+    //   })
+    //   .attr("y", (data: DataSet, index: number) => {
+    //     return this.yGroupScale(data.group);
+    //   })
+    //   .attr("width", (data: DataSet, index: number) => {
+    //     return xz(data.end) - xz(data.start);
+    //   })
+    //   .attr("height", this.yGroupScale.bandwidth())
+    //   .attr("data-id", (data: DataSet, index: number) => {
+    //     return data.id;
+    //   })
+    //   .attr("fill", "#044B94")
+    //   .attr("rx", "5")
+    //   .attr("fill-opacity", "0.1")
+    //   .attr("stroke", (data: DataSet, index: number) => {
+    //     if (data.editable){
+    //       return styleREdit
+    //     } else {
+    //       return styleRReadOnly
+    //     }
+        
+    //   })
+    //   .on("click", this.onClickItem);
+  };
+
+  draw = () => {    
+    console.log(this)
+    let item = this.svg
+      .append("g")
+      .attr("class", "rect")
+      .attr("fill", "none")
+      .selectAll("g")
+      .data(this.data)
+      .enter()
+      .append("g")
+      .attr("type", "rect");
+
+    this.drawItem(item);
 
     this.svg
       .call(this.zoom)
@@ -382,7 +368,7 @@ export class TimeLine {
       .attr("width", xz(data.end) - xz(data.start))
       .attr("x", xz(data.start))
       .attr("y", this.yGroupScale(data.group))
-      .attr("stroke", "black");
+      .attr("stroke", styleREdit);
     node
       .select("foreignObject .end")
       .text(moment(data.end).format("DD/MM/YYYY HH:mm"));
