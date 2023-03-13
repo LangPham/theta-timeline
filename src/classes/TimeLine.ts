@@ -253,10 +253,12 @@ export class TimeLine {
       .call(this.zoom)
       .transition()
       .duration(150)
-      .call(this.zoom.scaleTo, 50, [this.xTimeScale(Date.now()), 0]);
+      .call(this.zoom.scaleTo, 200, [this.xTimeScale(Date.now()), 0]);
   };
 
   onClickItem = (event: any, data: any) => {
+    
+    
     if (data.editable === false) {
       event.preventDefault();
       event.stopPropagation();
