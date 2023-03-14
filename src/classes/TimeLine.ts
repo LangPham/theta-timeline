@@ -31,15 +31,15 @@ export class TimeLine {
   drapTarget: any = null;
 
   constructor(id: string, data: DataSet[], group: string[], option?: any) {
-    this.margin = { top: 0, bottom: 0, left: 0, right: 0 };
+    this.margin = { top: 30, bottom: 30, left: 0, right: 0 };
     this.width = option?.width ?? 1200;
     this.height = option?.height ?? 500;
-    if (option.margin != undefined) {
-      this.margin.top = option.margin.top ?? 20;
-      this.margin.bottom = option.margin.bottom ?? 20;
-      this.margin.left = option.margin.left ?? 40;
-      this.margin.right = option.margin.top ?? 20;
-    }
+    // if (option.margin != undefined) {
+    //   this.margin.top = option.margin.top ?? 20;
+    //   this.margin.bottom = option.margin.bottom ?? 20;
+    //   this.margin.left = option.margin.left ?? 40;
+    //   this.margin.right = option.margin.top ?? 0;
+    // }
 
     this.xTimeDomain = [
       moment().add(-5, "days").toDate(),
@@ -73,7 +73,27 @@ export class TimeLine {
       .range([this.margin.left, this.width - this.margin.right]);
 
     // For x axis
-    this.xAxis = this.svg.append("g").call(this.xAxisFunc, this.xTimeScale);
+    this.xAxis = this.svg
+      .append("g")
+      .call(this.xAxisFunc, this.xTimeScale)
+      .call((x: any, data: any, gourp: any) => {
+       
+        x.append("g")
+          .attr("class", "now")
+          .attr("transform", (x: any, data: any, gourp: any) => {
+            
+            let xz = this.xTimeScale;
+            let now = moment()
+            
+            return `translate(${xz(now)},0)`
+          })
+          .append("line")
+          .attr("class", "today")
+          .attr("y1", 20)
+          .attr("y2", -550)
+          .style("stroke-width", 1)
+          .style("stroke", "red");
+      });
 
     // For y axis
     this.yGroupDomain = group;
@@ -87,7 +107,28 @@ export class TimeLine {
     this.yAxis = this.svg
       .append("g")
       .attr("transform", `translate(${this.margin.left},0)`)
-      .call(d3.axisLeft(this.yGroupScale));
+      .call(d3.axisLeft(this.yGroupScale))
+      .attr("text-anchor", "start")
+      .call((g: any) => {
+        g.select(".domain").remove();
+      })
+      .call((g: any) => {
+        // console.log("G:", g);
+        g.selectAll("text")
+          .attr("x", 10)
+          .attr("y", -this.yGroupScale.step() / 2)
+          .attr("dy", "1em");
+        g.selectAll(".tick line")
+          .attr("stroke-opacity", 0.5)
+          .attr("stroke-dasharray", "2,2")
+          .attr("x1", -this.margin.left)
+          .attr("x2", "1000")
+          .attr("y1", () => {
+            return -this.yGroupScale.step() / 2;
+          })
+          .attr("y2", -this.yGroupScale.step() / 2);
+        
+      });    
 
     this.zoom = d3
       .zoom()
@@ -111,10 +152,21 @@ export class TimeLine {
   }
 
   xAxisFunc = (g: any, xScale: any) => {
+    
+
     g.attr(
       "transform",
       `translate(0,${this.height - this.margin.bottom} )`
     ).call(d3.axisBottom(xScale));
+  };
+
+  xAxisNowFunc = (g: any, xScale: any) => {    
+    let now = moment()    
+    g.select("g .now")
+    .attr(
+      "transform",
+      `translate(${xScale(now)},0 )`
+    );
   };
 
   invertYGroup = (clickPoint: Point) => {
@@ -179,7 +231,7 @@ export class TimeLine {
         return xz(data.end) - xz(data.start);
       });
 
-    this.xAxis.call(this.xAxisFunc, xz);
+    this.xAxis.call(this.xAxisFunc, xz).call(this.xAxisNowFunc, xz);
   };
 
   drawItem = (item: any, transform?: any) => {
@@ -257,8 +309,6 @@ export class TimeLine {
   };
 
   onClickItem = (event: any, data: any) => {
-    
-    
     if (data.editable === false) {
       event.preventDefault();
       event.stopPropagation();

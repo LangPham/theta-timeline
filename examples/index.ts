@@ -49,7 +49,7 @@ for (let i = 0; i++, i <= count; ) {
 let tl = new TimeLine("mychart", datas, groups_arr, {
   width: 1000,
   height: 500,
-  margin: { top: 20, bottom: 20, left: 60},
+  margin: { top: 20, bottom: 20, left: 0, right: 0},
 });
 tl.draw();
 
